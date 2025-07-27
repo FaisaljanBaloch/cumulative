@@ -1,0 +1,37 @@
+---
+title: "Cumulative"
+author: "Faisal Jan"
+format: html
+execute: 
+  echo: false
+---
+
+```{r}
+#| message: false
+library(tidyverse)
+library(primer.data)
+```
+
+```{r}
+x <- ces |>
+  filter(year == 2020) |>
+  select(approval, education, ideology) |>
+  drop_na() |>
+  slice_sample(n = 2000)
+```
+
+```{r}
+x |>
+  ggplot(aes(x = ideology, fill = approval)) +
+  geom_bar() +
+  labs(
+    title = "Presidential Approval By Ideology",
+    subtitle = "Most liberals strongly disapprove the 2020 president.",
+    x = "Ideology",
+    y = "Count",
+    caption = "Source: Cooperative Election Study",
+    fill = "Approval"
+  )
+```
+
+People with different ideologies differ in approval ratings for any political positions. Using data from the 2020 Cooperative Election Study, I seek to explore how presidential approval varies across different ideological groups.
