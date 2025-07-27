@@ -34,4 +34,4 @@ x |>
   )
 ```
 
-People with different ideologies differ in approval ratings for any political positions. Using data from the 2020 Cooperative Election Study, I seek to explore how presidential approval varies across different ideological groups.
+People with different ideologies differ in approval ratings for any political positions. Using data from the 2020 Cooperative Election Study, I seek to explore how presidential approval varies across different ideological groups. Some of these approvals are self-reported and by YouGov panelists that can add bias to the data.
