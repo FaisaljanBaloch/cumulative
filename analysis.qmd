@@ -8,12 +8,14 @@ execute:
 
 ```{r}
 #| message: false
+#| warning: false
 library(MASS)
 library(tidyverse)
 library(primer.data)
 library(broom)
 library(easystats)
 library(gt)
+library(marginaleffects)
 
 tidy_approval <- readRDS("data/tidy_approval.rds")
 ```
@@ -22,8 +24,8 @@ tidy_approval <- readRDS("data/tidy_approval.rds")
 x <- ces |>
   filter(year == 2020) |>
   select(approval, ideology, education) |>
-  drop_na() |> 
-  filter(! ideology %in% "Not Sure") |> 
+  drop_na() |>
+  filter(!ideology %in% "Not Sure") |>
   mutate(ideology = fct_drop(ideology))
 ```
 
@@ -41,8 +43,7 @@ x |>
   )
 ```
 
-People with different ideologies differ in approval ratings for any political positions. Using data from the 2020 Cooperative Election Study, I seek to explore how presidential approval varies across different ideological groups. Some of these approvals are self-reported and by YouGov panelists that can add bias to the data. I model presidential approval as an outcome of the ordinal function of political ideology and education.
-
+People with different ideologies differ in approval ratings for any political positions. Using data from the 2020 Cooperative Election Study, I seek to explore how presidential approval varies across different ideological groups. Some of these approvals are self-reported and by YouGov panelists that can add bias to the data. I model presidential approval as an outcome of the ordinal function of political ideology and education. The predicted probability of a Very Conservative individual with a Post-Grad education Strongly Approving is estimated at 75%, with a 95% confidence interval ranging from 72% to 78%.
 
 $$
 \begin{aligned}
@@ -104,13 +105,54 @@ This model estimates the cumulative log-odds of an individual's approval level b
 
 ```{r}
 tidy_approval |>
-  select(term, estimate, conf.low, conf.high) |> 
+  select(term, estimate, conf.low, conf.high) |>
   gt() |>
-  tab_caption("Estimated Coefficients and Thresholds for Cumulative Logit Model of Approval") |>
+  tab_caption(
+    "Estimated Coefficients and Thresholds for Cumulative Logit Model of Approval"
+  ) |>
   cols_label(
     term = "Variable",
     estimate = "Estimate",
     conf.low = "Lower CI",
     conf.high = "Upper CI"
+  )
+```
+
+```{r}
+plot_predictions(
+  fit_approval,
+  condition = c("ideology", "education"),
+  draw = FALSE
+) |>
+  ggplot(aes(x = ideology, y = estimate, color = group, group = group)) +
+  geom_line(linewidth = 1.2, alpha = 0.8) +
+  geom_point(size = 3, alpha = 0.8) +
+  facet_wrap(~education, scales = "free_y", ncol = 3) + # Increased columns for wider facets
+  labs(
+    title = "Presidential Approval Probabilities Across Ideology and Education",
+    subtitle = "Predicted presidential approval increases with conservative ideology and higher education levels.",
+    x = "Ideology",
+    y = "Predicted Probability",
+    color = "Approval Level"
+  ) +
+  scale_y_continuous(
+    labels = scales::percent_format(),
+    breaks = seq(0, 1, by = 0.2)
+  ) +
+  scale_color_viridis_d(option = "D", begin = 0.1, end = 0.9) +
+  theme_minimal(base_size = 12) + # Slightly reduced base font size
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 14),
+    plot.subtitle = element_text(hjust = 1, size = 10),
+    axis.title = element_text(face = "bold", size = 12),
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 9), # Smaller x-axis labels
+    legend.title = element_text(face = "bold", size = 11),
+    legend.text = element_text(size = 9),
+    legend.position = "bottom", # Move legend to bottom
+    legend.box = "horizontal", # Arrange legend items horizontally
+    legend.key.size = unit(0.7, "lines"), # Smaller legend key squares
+    strip.text = element_text(face = "bold", size = 10), # Smaller facet titles
+    panel.grid.minor = element_blank(),
+    panel.spacing = unit(0.8, "lines") # Reduced spacing between facets
   )
 ```
