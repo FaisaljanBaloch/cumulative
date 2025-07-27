@@ -36,6 +36,35 @@ ul.task-list li input[type="checkbox"] {
 <link href="analysis_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
 <link href="analysis_files/libs/bootstrap/bootstrap-bb462d781dde1847d9e3ccf7736099dd.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
 
 </head>
 
@@ -71,6 +100,11 @@ ul.task-list li input[type="checkbox"] {
 
 
 <div class="cell">
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: package 'easystats' was built under R version 4.5.1</code></pre>
+</div>
+</div>
+<div class="cell">
 <div class="cell-output-display">
 <div>
 <figure class="figure">
@@ -79,7 +113,604 @@ ul.task-list li input[type="checkbox"] {
 </div>
 </div>
 </div>
-<p>People with different ideologies differ in approval ratings for any political positions. Using data from the 2020 Cooperative Election Study, I seek to explore how presidential approval varies across different ideological groups. Some of these approvals are self-reported and by YouGov panelists that can add bias to the data.</p>
+<p>People with different ideologies differ in approval ratings for any political positions. Using data from the 2020 Cooperative Election Study, I seek to explore how presidential approval varies across different ideological groups. Some of these approvals are self-reported and by YouGov panelists that can add bias to the data. I model presidential approval as an outcome of the ordinal function of political ideology and education.</p>
+<p><span class="math display">\[
+\begin{aligned}
+\text{ Cumulative Logistic } \\
+P(Y \le k) = \frac{\exp(\theta_k - \eta)}{1 + \exp(\theta_k - \eta)}
+\end{aligned}
+\]</span></p>
+<p>where: * <span class="math inline">\(Y\)</span> is the ordinal outcome variable (e.g., <code>approval</code>). * <span class="math inline">\(k\)</span> is the category threshold, with <span class="math inline">\(K-1\)</span> unique thresholds to be estimated. * <span class="math inline">\(\theta_k\)</span> is the intercept for the <span class="math inline">\(k\)</span>-th threshold. * <span class="math inline">\(\eta\)</span> is the linear predictor, which is a function of the independent variables: <span class="math display">\[
+    \eta = \beta_1 X_1 + \beta_2 X_2 + \cdots + \beta_n X_n
+    \]</span></p>
+<p>This structure ensures that the probabilities are correctly ordered, as the model estimates an increasing series of thresholds (<span class="math inline">\(\theta_1 &lt; \theta_2 &lt; \cdots &lt; \theta_{K-1}\)</span>).</p>
+<div class="cell">
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Re-fitting to get Hessian</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 13 × 7
+   term                estimate std.error statistic conf.low conf.high coef.type
+   &lt;chr&gt;                  &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;    &lt;dbl&gt;     &lt;dbl&gt; &lt;chr&gt;    
+ 1 ideologyLiberal       0.615     0.0538     11.4     0.510    0.721  coeffici…
+ 2 ideologyModerate      2.40      0.0474     50.6     2.31     2.49   coeffici…
+ 3 ideologyConservati…   4.46      0.0499     89.3     4.36     4.55   coeffici…
+ 4 ideologyVery Conse…   5.45      0.0550     99.1     5.34     5.55   coeffici…
+ 5 educationHigh Scho…  -0.0957    0.0600     -1.60   -0.213    0.0219 coeffici…
+ 6 educationSome Coll…  -0.311     0.0607     -5.12   -0.430   -0.192  coeffici…
+ 7 education2-Year      -0.325     0.0638     -5.09   -0.450   -0.199  coeffici…
+ 8 education4-Year      -0.521     0.0606     -8.59   -0.640   -0.402  coeffici…
+ 9 educationPost-Grad   -0.727     0.0634    -11.5    -0.852   -0.603  coeffici…
+10 Strongly Disapprov…   2.26      0.0724     31.2    NA       NA      scale    
+11 Disapprove / Somew…   2.73      0.0727     37.6    NA       NA      scale    
+12 Neither Approve no…   2.82      0.0727     38.8    NA       NA      scale    
+13 Approve / Somewhat…   3.93      0.0735     53.5    NA       NA      scale    </code></pre>
+</div>
+</div>
+<p><span class="math display">\[
+\log\left(\frac{P(\hat{\text{approval}} \le k)}{1 - P(\hat{\text{approval}} \le k)}\right) = \hat{\theta}_k - \left( \begin{aligned}
+&amp; 0.615 \cdot \text{ideology}_{\text{Liberal}} \\
+&amp; + 2.40 \cdot \text{ideology}_{\text{Moderate}} \\
+&amp; + 4.46 \cdot \text{ideology}_{\text{Conservative}} \\
+&amp; + 5.45 \cdot \text{ideology}_{\text{Very Conservative}} \\
+&amp; - 0.0957 \cdot \text{education}_{\text{High School Grad}} \\
+&amp; - 0.311 \cdot \text{education}_{\text{Some College}} \\
+&amp; - 0.325 \cdot \text{education}_{\text{2-Year}} \\
+&amp; - 0.521 \cdot \text{education}_{\text{4-Year}} \\
+&amp; - 0.727 \cdot \text{education}_{\text{Post-Grad}}
+\end{aligned} \right)
+\]</span></p>
+Where:
+The estimated thresholds (<span class="math inline">\(\hat{\theta}_k\)</span>) are:
+<p>This model estimates the cumulative log-odds of an individual’s approval level based on their ideology and education, assuming proportional odds across the categories.</p>
+<div class="cell">
+<div class="cell-output-display">
+<div id="qdsbhaynpq" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>#qdsbhaynpq table {
+  font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#qdsbhaynpq thead, #qdsbhaynpq tbody, #qdsbhaynpq tfoot, #qdsbhaynpq tr, #qdsbhaynpq td, #qdsbhaynpq th {
+  border-style: none;
+}
+
+#qdsbhaynpq p {
+  margin: 0;
+  padding: 0;
+}
+
+#qdsbhaynpq .gt_table {
+  display: table;
+  border-collapse: collapse;
+  line-height: normal;
+  margin-left: auto;
+  margin-right: auto;
+  color: #333333;
+  font-size: 16px;
+  font-weight: normal;
+  font-style: normal;
+  background-color: #FFFFFF;
+  width: auto;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #A8A8A8;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #A8A8A8;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+}
+
+#qdsbhaynpq .gt_caption {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+#qdsbhaynpq .gt_title {
+  color: #333333;
+  font-size: 125%;
+  font-weight: initial;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-color: #FFFFFF;
+  border-bottom-width: 0;
+}
+
+#qdsbhaynpq .gt_subtitle {
+  color: #333333;
+  font-size: 85%;
+  font-weight: initial;
+  padding-top: 3px;
+  padding-bottom: 5px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-color: #FFFFFF;
+  border-top-width: 0;
+}
+
+#qdsbhaynpq .gt_heading {
+  background-color: #FFFFFF;
+  text-align: center;
+  border-bottom-color: #FFFFFF;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#qdsbhaynpq .gt_bottom_border {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#qdsbhaynpq .gt_col_headings {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#qdsbhaynpq .gt_col_heading {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  overflow-x: hidden;
+}
+
+#qdsbhaynpq .gt_column_spanner_outer {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+#qdsbhaynpq .gt_column_spanner_outer:first-child {
+  padding-left: 0;
+}
+
+#qdsbhaynpq .gt_column_spanner_outer:last-child {
+  padding-right: 0;
+}
+
+#qdsbhaynpq .gt_column_spanner {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  overflow-x: hidden;
+  display: inline-block;
+  width: 100%;
+}
+
+#qdsbhaynpq .gt_spanner_row {
+  border-bottom-style: hidden;
+}
+
+#qdsbhaynpq .gt_group_heading {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  text-align: left;
+}
+
+#qdsbhaynpq .gt_empty_group_heading {
+  padding: 0.5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#qdsbhaynpq .gt_from_md > :first-child {
+  margin-top: 0;
+}
+
+#qdsbhaynpq .gt_from_md > :last-child {
+  margin-bottom: 0;
+}
+
+#qdsbhaynpq .gt_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin: 10px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-top-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  overflow-x: hidden;
+}
+
+#qdsbhaynpq .gt_stub {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#qdsbhaynpq .gt_stub_row_group {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+  vertical-align: top;
+}
+
+#qdsbhaynpq .gt_row_group_first td {
+  border-top-width: 2px;
+}
+
+#qdsbhaynpq .gt_row_group_first th {
+  border-top-width: 2px;
+}
+
+#qdsbhaynpq .gt_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#qdsbhaynpq .gt_first_summary_row {
+  border-top-style: solid;
+  border-top-color: #D3D3D3;
+}
+
+#qdsbhaynpq .gt_first_summary_row.thick {
+  border-top-width: 2px;
+}
+
+#qdsbhaynpq .gt_last_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#qdsbhaynpq .gt_grand_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#qdsbhaynpq .gt_first_grand_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: double;
+  border-top-width: 6px;
+  border-top-color: #D3D3D3;
+}
+
+#qdsbhaynpq .gt_last_grand_summary_row_top {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: double;
+  border-bottom-width: 6px;
+  border-bottom-color: #D3D3D3;
+}
+
+#qdsbhaynpq .gt_striped {
+  background-color: rgba(128, 128, 128, 0.05);
+}
+
+#qdsbhaynpq .gt_table_body {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#qdsbhaynpq .gt_footnotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#qdsbhaynpq .gt_footnote {
+  margin: 0px;
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#qdsbhaynpq .gt_sourcenotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#qdsbhaynpq .gt_sourcenote {
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#qdsbhaynpq .gt_left {
+  text-align: left;
+}
+
+#qdsbhaynpq .gt_center {
+  text-align: center;
+}
+
+#qdsbhaynpq .gt_right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#qdsbhaynpq .gt_font_normal {
+  font-weight: normal;
+}
+
+#qdsbhaynpq .gt_font_bold {
+  font-weight: bold;
+}
+
+#qdsbhaynpq .gt_font_italic {
+  font-style: italic;
+}
+
+#qdsbhaynpq .gt_super {
+  font-size: 65%;
+}
+
+#qdsbhaynpq .gt_footnote_marks {
+  font-size: 75%;
+  vertical-align: 0.4em;
+  position: initial;
+}
+
+#qdsbhaynpq .gt_asterisk {
+  font-size: 100%;
+  vertical-align: 0;
+}
+
+#qdsbhaynpq .gt_indent_1 {
+  text-indent: 5px;
+}
+
+#qdsbhaynpq .gt_indent_2 {
+  text-indent: 10px;
+}
+
+#qdsbhaynpq .gt_indent_3 {
+  text-indent: 15px;
+}
+
+#qdsbhaynpq .gt_indent_4 {
+  text-indent: 20px;
+}
+
+#qdsbhaynpq .gt_indent_5 {
+  text-indent: 25px;
+}
+
+#qdsbhaynpq .katex-display {
+  display: inline-flex !important;
+  margin-bottom: 0.75em !important;
+}
+
+#qdsbhaynpq div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
+  height: 0px !important;
+}
+</style>
+
+<table class="gt_table caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-quarto-disable-processing="false" data-quarto-bootstrap="false">
+<caption>Estimated Coefficients and Thresholds for Cumulative Logit Model of Approval</caption>
+<thead>
+<tr class="gt_col_headings header">
+<th id="term" class="gt_col_heading gt_columns_bottom_border gt_left" data-quarto-table-cell-role="th" scope="col">Variable</th>
+<th id="estimate" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">Estimate</th>
+<th id="conf.low" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">Lower CI</th>
+<th id="conf.high" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">Upper CI</th>
+</tr>
+</thead>
+<tbody class="gt_table_body">
+<tr class="odd">
+<td class="gt_row gt_left" headers="term">ideologyLiberal</td>
+<td class="gt_row gt_right" headers="estimate">0.61486022</td>
+<td class="gt_row gt_right" headers="conf.low">0.5100706</td>
+<td class="gt_row gt_right" headers="conf.high">0.72097617</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="term">ideologyModerate</td>
+<td class="gt_row gt_right" headers="estimate">2.39760437</td>
+<td class="gt_row gt_right" headers="conf.low">2.3058778</td>
+<td class="gt_row gt_right" headers="conf.high">2.49147844</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="term">ideologyConservative</td>
+<td class="gt_row gt_right" headers="estimate">4.45525288</td>
+<td class="gt_row gt_right" headers="conf.low">4.3583750</td>
+<td class="gt_row gt_right" headers="conf.high">4.55397704</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="term">ideologyVery Conservative</td>
+<td class="gt_row gt_right" headers="estimate">5.44610561</td>
+<td class="gt_row gt_right" headers="conf.low">5.3392269</td>
+<td class="gt_row gt_right" headers="conf.high">5.55475192</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="term">educationHigh School Graduate</td>
+<td class="gt_row gt_right" headers="estimate">-0.09573811</td>
+<td class="gt_row gt_right" headers="conf.low">-0.2132131</td>
+<td class="gt_row gt_right" headers="conf.high">0.02185719</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="term">educationSome College</td>
+<td class="gt_row gt_right" headers="estimate">-0.31099458</td>
+<td class="gt_row gt_right" headers="conf.low">-0.4298936</td>
+<td class="gt_row gt_right" headers="conf.high">-0.19197519</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="term">education2-Year</td>
+<td class="gt_row gt_right" headers="estimate">-0.32454679</td>
+<td class="gt_row gt_right" headers="conf.low">-0.4495219</td>
+<td class="gt_row gt_right" headers="conf.high">-0.19948338</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="term">education4-Year</td>
+<td class="gt_row gt_right" headers="estimate">-0.52082362</td>
+<td class="gt_row gt_right" headers="conf.low">-0.6395581</td>
+<td class="gt_row gt_right" headers="conf.high">-0.40198410</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="term">educationPost-Grad</td>
+<td class="gt_row gt_right" headers="estimate">-0.72732760</td>
+<td class="gt_row gt_right" headers="conf.low">-0.8516250</td>
+<td class="gt_row gt_right" headers="conf.high">-0.60296542</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="term">Strongly Disapprove|Disapprove / Somewhat Disapprove</td>
+<td class="gt_row gt_right" headers="estimate">2.25800260</td>
+<td class="gt_row gt_right" headers="conf.low">NA</td>
+<td class="gt_row gt_right" headers="conf.high">NA</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="term">Disapprove / Somewhat Disapprove|Neither Approve nor Disapprove</td>
+<td class="gt_row gt_right" headers="estimate">2.73276494</td>
+<td class="gt_row gt_right" headers="conf.low">NA</td>
+<td class="gt_row gt_right" headers="conf.high">NA</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="term">Neither Approve nor Disapprove|Approve / Somewhat Approve</td>
+<td class="gt_row gt_right" headers="estimate">2.81890860</td>
+<td class="gt_row gt_right" headers="conf.low">NA</td>
+<td class="gt_row gt_right" headers="conf.high">NA</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="term">Approve / Somewhat Approve|Strongly Approve</td>
+<td class="gt_row gt_right" headers="estimate">3.93274712</td>
+<td class="gt_row gt_right" headers="conf.low">NA</td>
+<td class="gt_row gt_right" headers="conf.high">NA</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
 
 </main>
 <!-- /main column -->

@@ -8,16 +8,23 @@ execute:
 
 ```{r}
 #| message: false
+library(MASS)
 library(tidyverse)
 library(primer.data)
+library(broom)
+library(easystats)
+library(gt)
+
+tidy_approval <- readRDS("data/tidy_approval.rds")
 ```
 
 ```{r}
 x <- ces |>
   filter(year == 2020) |>
-  select(approval, education, ideology) |>
-  drop_na() |>
-  slice_sample(n = 2000)
+  select(approval, ideology, education) |>
+  drop_na() |> 
+  filter(! ideology %in% "Not Sure") |> 
+  mutate(ideology = fct_drop(ideology))
 ```
 
 ```{r}
@@ -34,4 +41,76 @@ x |>
   )
 ```
 
-People with different ideologies differ in approval ratings for any political positions. Using data from the 2020 Cooperative Election Study, I seek to explore how presidential approval varies across different ideological groups. Some of these approvals are self-reported and by YouGov panelists that can add bias to the data.
+People with different ideologies differ in approval ratings for any political positions. Using data from the 2020 Cooperative Election Study, I seek to explore how presidential approval varies across different ideological groups. Some of these approvals are self-reported and by YouGov panelists that can add bias to the data. I model presidential approval as an outcome of the ordinal function of political ideology and education.
+
+
+$$
+\begin{aligned}
+\text{ Cumulative Logistic } \\
+P(Y \le k) = \frac{\exp(\theta_k - \eta)}{1 + \exp(\theta_k - \eta)}
+\end{aligned}
+$$
+
+where:
+* $Y$ is the ordinal outcome variable (e.g., `approval`).
+* $k$ is the category threshold, with $K-1$ unique thresholds to be estimated.
+* $\theta_k$ is the intercept for the $k$-th threshold.
+* $\eta$ is the linear predictor, which is a function of the independent variables:
+    $$
+    \eta = \beta_1 X_1 + \beta_2 X_2 + \cdots + \beta_n X_n
+    $$
+
+This structure ensures that the probabilities are correctly ordered, as the model estimates an increasing series of thresholds ($\theta_1 < \theta_2 < \cdots < \theta_{K-1}$).
+
+```{r}
+fit_approval <- polr(approval ~ ideology + education, data = x)
+```
+
+```{r}
+#| cache: true
+fit_approval |> tidy(conf.int = TRUE)
+```
+
+$$
+\log\left(\frac{P(\hat{\text{approval}} \le k)}{1 - P(\hat{\text{approval}} \le k)}\right) = \hat{\theta}_k - \left( \begin{aligned}
+& 0.615 \cdot \text{ideology}_{\text{Liberal}} \\
+& + 2.40 \cdot \text{ideology}_{\text{Moderate}} \\
+& + 4.46 \cdot \text{ideology}_{\text{Conservative}} \\
+& + 5.45 \cdot \text{ideology}_{\text{Very Conservative}} \\
+& - 0.0957 \cdot \text{education}_{\text{High School Grad}} \\
+& - 0.311 \cdot \text{education}_{\text{Some College}} \\
+& - 0.325 \cdot \text{education}_{\text{2-Year}} \\
+& - 0.521 \cdot \text{education}_{\text{4-Year}} \\
+& - 0.727 \cdot \text{education}_{\text{Post-Grad}}
+\end{aligned} \right)
+$$
+
+Where:
+\begin{itemize}
+    \item $\hat{\text{approval}}$ represents the fitted ordinal dependent variable.
+    \item $k$ is the index for the cumulative category, ranging from $1$ to $4$.
+    \item $\text{ideology}_{\text{Level}}$ and $\text{education}_{\text{Level}}$ are dummy variables, taking a value of $1$ if the individual's `ideology` or `education` matches that level, and $0$ otherwise. The implicit reference levels are the unlisted categories for each factor (e.g., the base level of `ideology` and `education`).
+\end{itemize}
+
+The estimated thresholds ($\hat{\theta}_k$) are:
+\begin{itemize}
+    \item $\hat{\theta}_1$ (Strongly Disapprove $| \text{Disapprove / Somewhat Disapprove}$) $= 2.26$
+    \item $\hat{\theta}_2$ (Disapprove / Somewhat Disapprove $| \text{Neither Approve nor Disapprove}$) $= 2.73$
+    \item $\hat{\theta}_3$ (Neither Approve nor Disapprove $| \text{Approve / Somewhat Approve}$) $= 2.82$
+    \item $\hat{\theta}_4$ (Approve / Somewhat Approve $| \text{Strongly Approve}$) $= 3.93$
+\end{itemize}
+
+This model estimates the cumulative log-odds of an individual's approval level based on their ideology and education, assuming proportional odds across the categories.
+
+```{r}
+tidy_approval |>
+  select(term, estimate, conf.low, conf.high) |> 
+  gt() |>
+  tab_caption("Estimated Coefficients and Thresholds for Cumulative Logit Model of Approval") |>
+  cols_label(
+    term = "Variable",
+    estimate = "Estimate",
+    conf.low = "Lower CI",
+    conf.high = "Upper CI"
+  )
+```
